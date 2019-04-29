@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+    BankEC2Instance:
+        Description: Ec2 instance with running latest bank-vertx app.
+        Type: AWS::EC2::Instance
+        Properties:
+            InstanceType: 't2.micro'
+            SecurityGroups: [!Ref 'InstanceSecurityGroup']
+            KeyName: 'ivan_aws_key'
+            ImageId: 'ami-0a313d6098716f372'
+            UserData:
+                Fn::Base64: !Sub |
+                    #!/bin/bash -xe
+                    apt-get -y update
+                    apt-get install -y git
+                    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+                    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+                    apt-get -y update
+                    apt-get install -y docker-ce
+                    service docker start
+                    git clone https://github.com/nikitsenka/bank-vertx.git
+                    docker build --no-cache -t bank-vertx -f bank-vertx/docker/app.dockerfile bank-vertx
+                    docker run --name bank-vertx -p 80:8080 -e POSTGRES_HOST=3.214.55.121 -d bank-vertx
+    PostgresEC2Instance:
+      Description: Postgres database.
+      Type: AWS::EC2::Instance
+      Properties:
+        InstanceType: 'd2.xlarge'
+        SecurityGroups: [!Ref 'InstanceSecurityGroup']
+        KeyName: 'ivan_aws_key'
+        ImageId: 'ami-0a313d6098716f372'
+        UserData:
+            Fn::Base64: !Sub |
+              #!/bin/bash -xe
+              apt-get -y update
+              apt-get install -y git
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+              apt-get -y update
+              apt-get install -y docker-ce
+              service docker start
+              git clone https://github.com/nikitsenka/bank-vertx.git
+              docker build --no-cache -t bank-db -f bank-vertx/docker/db.dockerfile bank-vertx
+              docker run --name bank-db -p 5432:5432 -e POSTGRES_PASSWORD=test1234 -d bank-db
+    InstanceSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Enable SSH access via port 22
+            SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 22
+              ToPort: 22
+              CidrIp: '0.0.0.0/0'
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
+              CidrIp: '0.0.0.0/0'
+            - IpProtocol: tcp
+              FromPort: 5432
+              ToPort: 5432
+              CidrIp: '0.0.0.0/0'
+    BankIPAssoc:
+        Type: AWS::EC2::EIPAssociation
+        Properties:
+            InstanceId: !Ref 'BankEC2Instance'
+            EIP: '54.162.142.65'
+    PostgresIPAssoc:
+        Type: AWS::EC2::EIPAssociation
+        Properties:
+            InstanceId: !Ref 'PostgresEC2Instance'
+            EIP: '3.214.55.121'
+Outputs:
+    InstanceId:
+        Description: InstanceId of the newly created EC2 instance
+        Value: !Ref 'BankEC2Instance'
+    AZ:
+        Description: Availability Zone of the newly created EC2 instance
+        Value: !GetAtt [BankEC2Instance, AvailabilityZone]
+    PublicDNS:
+        Description: Public DNSName of the newly created EC2 instance
+        Value: !GetAtt [BankEC2Instance, PublicDnsName]
+    PublicIP:
+        Description: Public IP address of the newly created EC2 instance
+        Value: !GetAtt [BankEC2Instance, PublicIp]
