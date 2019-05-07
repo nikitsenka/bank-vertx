@@ -11,6 +11,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class BankRepository {
@@ -34,7 +35,7 @@ public class BankRepository {
 
     public PgClient createClient(Client client, Handler<AsyncResult<PgRowSet>> responseHandler) {
         return pgClient.preparedBatch("INSERT INTO client(name, email, phone) VALUES ($1, $2, $3) RETURNING id",
-                List.of(Tuple.of(client.getName(), client.getEmail(), client.getPhone())),
+                Arrays.asList(Tuple.of(client.getName(), client.getEmail(), client.getPhone())),
                 responseHandler);
     }
 
@@ -46,7 +47,7 @@ public class BankRepository {
 
     public PgClient createTransaction(Transaction transaction, Handler<AsyncResult<PgRowSet>> responseHandler) {
         return pgClient.preparedBatch("INSERT INTO transaction(from_client_id, to_client_id, amount) VALUES ($1, $2, $3) RETURNING id",
-                List.of(Tuple.of(transaction.getFromClientId(), transaction.getToClientId(), transaction.getAmount())),
+                Arrays.asList(Tuple.of(transaction.getFromClientId(), transaction.getToClientId(), transaction.getAmount())),
                 responseHandler);
     }
 }

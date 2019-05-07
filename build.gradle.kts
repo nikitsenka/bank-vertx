@@ -20,6 +20,7 @@ dependencies {
 
   testImplementation("io.vertx:vertx-junit5:$vertxVersion")
   testImplementation("io.vertx:vertx-web-client:$vertxVersion")
+  testImplementation("org.testcontainers:postgresql:1.11.1")
 }
 
 java {
